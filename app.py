@@ -126,8 +126,8 @@ def sql_2_df(db,table_name):
 
 def main():
     st.title("Webcam Capture and Analysis")
-    image_path = r"images/image.jpg"  # Provide the path to your image
-    db_path = r"data/database.db"  # Provide the path to your SQLite database
+    image_path = r"image.jpg"  # Provide the path to your image
+    db_path = r"database.db"  # Provide the path to your SQLite database
     table_name = r"camur_bilgi"  # Provide the name of the table in the database
     picture=st.camera_input("AAT Çamur Fotoğrafı")
     if picture is not None:
