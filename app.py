@@ -3,52 +3,57 @@ import numpy as np
 import sqlite3
 import pandas as pd
 import streamlit as st
+import sys
 
+db_file="database.db"
+table_name='olcumler'
 
-def add_image_to_database():
-    # Read the image from file
-    image = cv2.imread('image.jpg')
-
-    # Convert the image to bytes
-    success, encoded_image = cv2.imencode(".jpg", image)
-    if success:
-        # Get the byte array from the encoded image data
-        image_bytes = np.array(encoded_image).tobytes()
-
-        # Now you can use 'image_bytes' to store the image data or send it over networks, etc.
+def create_dbconnection(db_file):
+    """ create a database connection to the SQLite database
+        specified by db_file
+    :param db_file: database file
+    :return: Connection object or None
+    """
+    the_conn = sqlite3.connect(db_file, check_same_thread=False)
+    if the_conn is not None:
+        return the_conn
     else:
-        print("Failed to encode the image.")
+        print("Bağlantı Kurulamıyor...")
+        sys.exit
+
+
+def create_table(the_conn,table_name):
+    """ create a table from the create_table_sql statement
+    :param the_conn: Connection object
+    """
+    c = the_conn.cursor()
+    c.execute(f"""
+        CREATE TABLE IF NOT EXISTS {table_name}(
+            image_id INTEGER PRIMARY KEY, 
+            puruzluluk float,
+            parlaklik float,
+            tarih text
+            nem float,
+            image BLOB)
+            """)
+
+def add_data(the_conn,the_table, kayit):
+    cur = the_conn.cursor()
+    cur.execute(f"""INSERT INTO {the_table}(puruzluluk,parlaklik,tarih,image) VALUES(?,?,?,?) """, kayit)
+    the_conn.commit()
+    the_conn.close()
+
+
+def read_image_from_database(db_file, table_name,imageid):
     # Connect to the SQLite database
-    connection = sqlite3.connect('database.db')
-    cursor = connection.cursor()
-
-    # Create the table if it doesn't exist
-    cursor.execute(f"""
-        CREATE TABLE IF NOT EXISTS olcumler (
-            image_id INTEGER PRIMARY KEY,
-            image BLOB
-        )
-    """)
-
-    # Insert the image into the table
-    cursor.execute(f"INSERT INTO olcumler (image) VALUES (?)", (sqlite3.Binary(image_bytes),))
-
-    # Commit the changes and close the connection
-    connection.commit()
-    connection.close()
-
-
-def read_image_from_database(db_path, table_name, image_id):
-    # Connect to the SQLite database
-    connection = sqlite3.connect(db_path)
-    cursor = connection.cursor()
-
+    conn = sqlite3.connect(db_file)
+    cursor = conn.cursor()
     # Retrieve the image data from the table
-    cursor.execute(f"SELECT image FROM {table_name} WHERE image_id = ?", (image_id,))
+    cursor.execute(f"SELECT image FROM {table_name} WHERE image_id = ?", (imageid,))
     image_blob = cursor.fetchone()
 
     # Close the connection
-    connection.close()
+    conn.close()
 
     if image_blob:
         # Convert the image data back to bytes and decode using numpy
@@ -56,10 +61,10 @@ def read_image_from_database(db_path, table_name, image_id):
         
         # Decode the image using OpenCV
         image = cv2.imdecode(image_data, cv2.IMREAD_COLOR)
-        if image is not None:
-            cv2.imshow("Image from Database", image)
-            cv2.waitKey(0)
-            cv2.destroyAllWindows()
+        # if image is not None:
+        #     cv2.imshow("Image from Database", image)
+        #     cv2.waitKey(0)
+        #     cv2.destroyAllWindows()
         return image
     else:
         print("Image not found.")
@@ -125,28 +130,29 @@ def sql_2_df(db,table_name):
 
 
 def main():
-    st.title("Webcam Capture and Analysis")
-    image_path = r"image.jpg"  # Provide the path to your image
-    db_path = r"database.db"  # Provide the path to your SQLite database
-    table_name = r"camur_bilgi"  # Provide the name of the table in the database
+    st.title("ÇAMUR ANALİZİ")
+    # image_path = r"image.jpg"  # Provide the path to your image
+    # db_path = r"database.db"  # Provide the path to your SQLite database
+    # table_name = r"camur_bilgi"  # Provide the name of the table in the database
     picture=st.camera_input("AAT Çamur Fotoğrafı")
     if picture is not None:
         bytes_data = picture.getvalue()
         cv2_img = cv2.imdecode(np.frombuffer(bytes_data, np.uint8), cv2.IMREAD_COLOR)
-        cv2.imwrite(image_path,cv2_img)
         roughness_index = calculate_roughness(cv2_img)
-        st.write(f"Roughness Index: {roughness_index:.2f}")
         brightness_index = calculate_brightness(cv2_img)
-        st.write(f"Brightness Index: {brightness_index:.2f}")
         with st.form("AAT Çamur Bilgisi",clear_on_submit=True):
-            aat=st.text_input(label='AAT Adı',disabled=False,key='aat',value="")
-            numune=st.text_input(label='Numune Adı',disabled=False,key='numune',value="")
-            tarih=st.date_input(label='Numune Tarihi',disabled=False,key='tarih',value=None)
-            nem=st.slider(label="Lütfen Nem Değerini Giriniz",min_value=0,max_value=1500,value=0,disabled=False,key='nem')
+            st.write(f"Roughness Index: {roughness_index:.2f}")
+            st.write(f"Brightness Index: {brightness_index:.2f}")
+            #aat=st.text_input(label='AAT Adı',disabled=False,key='aat',value="")
+            #numune=st.text_input(label='Numune Adı',disabled=False,key='numune',value="")
+            tarih=st.date_input(label='Tarih',disabled=False,key='tarih',value=None,format="DD/MM/YYYY")
+            nem=st.slider(label="Nem Değeri",min_value=0,max_value=1500,value=0,disabled=False,key='nem')
             kaydet=st.form_submit_button('Kaydet',disabled=False,)
-            if all([picture,aat,numune,tarih,nem]):
+            if all([picture,roughness_index,brightness_index,tarih]):
                 if kaydet:
-                    add_image_to_database(image_path, db_path, table_name)
+                    conn = create_dbconnection(db_file=db_file)
+                    create_table(conn,table_name=table_name)
+                    add_data(the_conn=conn,the_table=table_name,kayit=(roughness_index,brightness_index,tarih,sqlite3.Binary(bytes_data)))
                     st.success("Görüntü bilgileri Kaydedildi")
                     picture=None
    
@@ -154,7 +160,36 @@ def main():
                 st.warning("Lütfen Eksik Bilgileri Tamamlayınız!" )
     else:
         st.empty()
-
+    conn = create_dbconnection(db_file=db_file)
+    create_table(the_conn=conn,table_name=table_name)
+    df=sql_2_df(db=db_file,table_name=table_name)
+    col1,col2,col3,col4=st.columns(4)
+    with col1:
+        if df.shape[0]%4==1 or df.image_id.values[0]==1:
+            for i in range(1,df.shape[0]+1,4):
+                st.write(f"IMAGE_ID:{i}")
+                st.image(read_image_from_database(db_file=db_file,table_name=table_name,imageid=i))
+                st.write(f"PÜRÜZLÜLÜK:{round(df.loc[df.image_id==i].puruzluluk.values[0],2)}")
+    with col2:
+        if df.shape[0]%4==2 or df.image_id.values[1]==2:
+            for i in range(2,df.shape[0]+1,4):
+                st.write(f"IMAGE_ID:{i}")
+                st.image(read_image_from_database(db_file=db_file,table_name=table_name,imageid=i))
+                st.write(f"PÜRÜZLÜLÜK:{round(df.loc[df.image_id==i].puruzluluk.values[0],2)}")      
+    with col3:
+        if df.shape[0]%4==3 or df.image_id.values[2]==3:
+            for i in range(3,df.shape[0]+1,4):
+                st.write(f"IMAGE_ID:{i}")
+                st.image(read_image_from_database(db_file=db_file,table_name=table_name,imageid=i))
+                st.write(f"PÜRÜZLÜLÜK:{round(df.loc[df.image_id==i].puruzluluk.values[0],2)}")
+    with col4:
+        if df.shape[0]%4==0 or df.image_id.values[3]==4:
+            for i in range(4,df.shape[0]+1,4):
+                st.write(f"IMAGE_ID:{i}")
+                st.image(read_image_from_database(db_file=db_file,table_name=table_name,imageid=i))
+                st.write(f"PÜRÜZLÜLÜK:{round(df.loc[df.image_id==i].puruzluluk.values[0],2)}")     
+    conn.close()
+    st.dataframe(df)
 
 
 
