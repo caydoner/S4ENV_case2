@@ -3,11 +3,11 @@ import numpy as np
 import sqlite3
 import pandas as pd
 import streamlit as st
-import os
 
-def add_image_to_database(image_path, db_path, table_name):
+
+def add_image_to_database():
     # Read the image from file
-    image = cv2.imread(image_path)
+    image = cv2.imread('image.jpg')
 
     # Convert the image to bytes
     success, encoded_image = cv2.imencode(".jpg", image)
@@ -19,19 +19,19 @@ def add_image_to_database(image_path, db_path, table_name):
     else:
         print("Failed to encode the image.")
     # Connect to the SQLite database
-    connection = sqlite3.connect(db_path)
+    connection = sqlite3.connect('database.db')
     cursor = connection.cursor()
 
     # Create the table if it doesn't exist
     cursor.execute(f"""
-        CREATE TABLE IF NOT EXISTS {table_name} (
+        CREATE TABLE IF NOT EXISTS olcumler (
             image_id INTEGER PRIMARY KEY,
             image BLOB
         )
     """)
 
     # Insert the image into the table
-    cursor.execute(f"INSERT INTO {table_name} (image) VALUES (?)", (sqlite3.Binary(image_bytes),))
+    cursor.execute(f"INSERT INTO olcumler (image) VALUES (?)", (sqlite3.Binary(image_bytes),))
 
     # Commit the changes and close the connection
     connection.commit()
