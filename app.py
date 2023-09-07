@@ -86,35 +86,6 @@ def calculate_brightness(cv2img):
     return brightness_index
 
 
-def capture_image_from_webcam(output_path):
-    # Open the webcam
-    cap = cv2.VideoCapture(0)
-
-    if not cap.isOpened():
-        print("Error: Couldn't open the webcam.")
-        return
-
-    while True:
-        ret, frame = cap.read()
-
-        if not ret:
-            print("Error: Couldn't capture a frame.")
-            break
-
-        cv2.imshow("Webcam Stream", frame)
-
-        # Press 'c' to capture the current frame
-        key = cv2.waitKey(1)
-        if key == ord('s'):
-            cv2.imwrite(output_path, frame)
-            print(f"Image captured and saved as {output_path}")
-            break
-        elif key == 27:  # Press 'Esc' key to exit
-            break
-
-    cap.release()
-    cv2.destroyAllWindows()
-
 
 def sql_2_df(db,table_name):
     # SQLite veritabanına bağlan
