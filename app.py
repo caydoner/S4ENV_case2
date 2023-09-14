@@ -201,9 +201,6 @@ def main():
             colms[i].write(liste[i])
             colms[i].image(read_image_from_database(db_file=db_file,table_name=table_name,numune_adi=liste[i]))
 
-
-    st.write(rembg.__version__)
-
                
 if __name__ == "__main__":
     main()
