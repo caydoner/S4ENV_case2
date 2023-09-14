@@ -4,9 +4,25 @@ import sqlite3
 import pandas as pd
 import streamlit as st
 import sys
+import rembg
+
+
+col1,col2,col3,col4,col5=st.columns([1,2,2,2,5])
+with col1:
+     st.image(".streamlit/tubitakmam.jpg",width=80,use_column_width=False)
+with col3:
+     st.image(".streamlit/Smart4EnvLogo.png",width=180,use_column_width=False)
+with col5:
+     st.image(".streamlit/smart4envbacky.png",width=300,use_column_width=True)
 
 db_file="database.db"
 table_name='olcumler'
+
+
+def local_css(file_name):
+    with open(file_name) as f:
+        st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
+
 
 def create_dbconnection(db_file):
     """ create a database connection to the SQLite database
@@ -22,38 +38,52 @@ def create_dbconnection(db_file):
         sys.exit
 
 
-def create_table(the_conn,table_name):
+
+def create_table(db_file,table_name):
     """ create a table from the create_table_sql statement
     :param the_conn: Connection object
     """
+    the_conn=sqlite3.connect(database=db_file)
     c = the_conn.cursor()
     c.execute(f"""
         CREATE TABLE IF NOT EXISTS {table_name}(
             image_id INTEGER PRIMARY KEY, 
-            puruzluluk float,
-            parlaklik float,
-            tarih text
-            nem float,
+            puruzluluk FLOAT,
+            parlaklik FLOAT,
+            numune_adi TEXT,
+            nem INTEGER,
             image BLOB)
             """)
-
-def add_data(the_conn,the_table, kayit):
-    cur = the_conn.cursor()
-    cur.execute(f"""INSERT INTO {the_table}(puruzluluk,parlaklik,tarih,image) VALUES(?,?,?,?) """, kayit)
     the_conn.commit()
     the_conn.close()
 
 
-def read_image_from_database(db_file, table_name,imageid):
+def add_data(db_file,the_table, kayit):
+    the_conn = sqlite3.connect(database=db_file)
+    cur = the_conn.cursor()
+    cur.execute(f"""INSERT INTO {the_table}(puruzluluk,parlaklik,numune_adi,image) VALUES (?,?,?,?) """, kayit)
+    the_conn.commit()
+    the_conn.close()
+
+
+def delete_table(db_file,the_table):
+    the_conn = sqlite3.connect(database=db_file)
+    cur = the_conn.cursor()
+    cur.execute(f"""DROP TABLE IF EXISTS {the_table}""")
+    the_conn.commit()
+    the_conn.close()
+
+
+def read_image_from_database(db_file, table_name,numune_adi):
     # Connect to the SQLite database
-    conn = sqlite3.connect(db_file)
-    cursor = conn.cursor()
+    the_conn = sqlite3.connect(database=db_file)
+    cursor = the_conn.cursor()
     # Retrieve the image data from the table
-    cursor.execute(f"SELECT image FROM {table_name} WHERE image_id = ?", (imageid,))
+    cursor.execute(f"SELECT image FROM {table_name} WHERE numune_adi = ?", (numune_adi,))
     image_blob = cursor.fetchone()
 
     # Close the connection
-    conn.close()
+    the_conn.close()
 
     if image_blob:
         # Convert the image data back to bytes and decode using numpy
@@ -90,79 +120,90 @@ def calculate_brightness(cv2img):
 def sql_2_df(db,table_name):
     # SQLite veritabanına bağlan
     con = sqlite3.connect(db)
-
     # Pandas ile SQL sorgusunu kullanarak veriyi oku
     query = f"SELECT * FROM {table_name}"
     df = pd.read_sql(query, con)
-
     # Bağlantıyı kapat
     con.close()
     return df
 
 
+def add_column():
+     ncols=st.session_state['ncount']
+     columns=st.columns(ncols)
+     for i in range(ncols):
+          columns[i]=st.empty()
+
+
+
+
 def main():
-    st.title("ÇAMUR ANALİZİ")
-    # image_path = r"image.jpg"  # Provide the path to your image
-    # db_path = r"database.db"  # Provide the path to your SQLite database
-    # table_name = r"camur_bilgi"  # Provide the name of the table in the database
-    picture=st.camera_input("AAT Çamur Fotoğrafı")
+    if  st.button(label='Verileri Temizle'):
+        delete_table(db_file=db_file,the_table=table_name)
+        st.success("Veritabanı temizlendi.")
+    create_table(db_file=db_file,table_name=table_name)
+    local_css('style.css')
+    #st.dataframe(sql_2_df(db_file=db_file,the_table=table_name))
+    #ncount=st.selectbox(label="NUMUNE SAYISI",options=[1,2,3,4,5])
+    picture=st.camera_input("NUMUNE FOTOĞRAFI")
     if picture is not None:
         bytes_data = picture.getvalue()
-        cv2_img = cv2.imdecode(np.frombuffer(bytes_data, np.uint8), cv2.IMREAD_COLOR)
+        bytes_data_rbg=rembg.remove(bytes_data)
+        cv2_img = cv2.imdecode(np.frombuffer(bytes_data_rbg, np.uint8), cv2.IMREAD_COLOR)
         roughness_index = calculate_roughness(cv2_img)
         brightness_index = calculate_brightness(cv2_img)
-        with st.form("AAT Çamur Bilgisi",clear_on_submit=True):
-            st.write(f"Roughness Index: {roughness_index:.2f}")
-            st.write(f"Brightness Index: {brightness_index:.2f}")
-            #aat=st.text_input(label='AAT Adı',disabled=False,key='aat',value="")
-            #numune=st.text_input(label='Numune Adı',disabled=False,key='numune',value="")
-            tarih=st.date_input(label='Tarih',disabled=False,key='tarih',value=None,format="DD/MM/YYYY")
-            nem=st.slider(label="Nem Değeri",min_value=0,max_value=1500,value=0,disabled=False,key='nem')
+        with st.form("Numune Fotoğraflari",clear_on_submit=True):
+            #st.write(f"Roughness Index: {roughness_index:.2f}")
+            #st.write(f"Brightness Index: {brightness_index:.2f}")
+            numune_adi=st.text_input(label='Numune Adı')
+            #tarih=st.date_input(label='Tarih',disabled=False,key='tarih',value=None,format="DD/MM/YYYY")
+            #nem=st.slider(label="Nem Değeri",min_value=0,max_value=1500,value=0,disabled=False,key='nem')
+            #st.write(all([picture,roughness_index,brightness_index,numune_adi]))
             kaydet=st.form_submit_button('Kaydet',disabled=False,)
-            if all([picture,roughness_index,brightness_index,tarih]):
+            if all([picture,roughness_index,brightness_index,numune_adi]):
                 if kaydet:
-                    conn = create_dbconnection(db_file=db_file)
-                    create_table(conn,table_name=table_name)
-                    add_data(the_conn=conn,the_table=table_name,kayit=(roughness_index,brightness_index,tarih,sqlite3.Binary(bytes_data)))
-                    st.success("Görüntü bilgileri Kaydedildi")
-                    picture=None
-   
+                    add_data(db_file=db_file,the_table=table_name,kayit=(roughness_index,brightness_index,numune_adi,sqlite3.Binary(bytes_data_rbg)))
+                    st.success("Numune Kaydedildi")
+                    del picture
+                    del roughness_index
+                    del brightness_index
+                    del numune_adi
+                    del bytes_data_rbg
             else:
-                st.warning("Lütfen Eksik Bilgileri Tamamlayınız!" )
+                st.warning("Lütfen Numune Adını Giriniz!" )
+
+
     else:
         st.empty()
-    conn = create_dbconnection(db_file=db_file)
-    create_table(the_conn=conn,table_name=table_name)
+
+    #NEM DURUMUNA GÖRE SIRALA
     df=sql_2_df(db=db_file,table_name=table_name)
-    col1,col2,col3,col4=st.columns(4)
-    with col1:
-        if df.shape[0]%4==1 or df.image_id.values[0]==1:
-            for i in range(1,df.shape[0]+1,4):
-                st.write(f"IMAGE_ID:{i}")
-                st.image(read_image_from_database(db_file=db_file,table_name=table_name,imageid=i))
-                st.write(f"PÜRÜZLÜLÜK:{round(df.loc[df.image_id==i].puruzluluk.values[0],2)}")
-    with col2:
-        if df.shape[0]%4==2 or df.image_id.values[1]==2:
-            for i in range(2,df.shape[0]+1,4):
-                st.write(f"IMAGE_ID:{i}")
-                st.image(read_image_from_database(db_file=db_file,table_name=table_name,imageid=i))
-                st.write(f"PÜRÜZLÜLÜK:{round(df.loc[df.image_id==i].puruzluluk.values[0],2)}")      
-    with col3:
-        if df.shape[0]%4==3 or df.image_id.values[2]==3:
-            for i in range(3,df.shape[0]+1,4):
-                st.write(f"IMAGE_ID:{i}")
-                st.image(read_image_from_database(db_file=db_file,table_name=table_name,imageid=i))
-                st.write(f"PÜRÜZLÜLÜK:{round(df.loc[df.image_id==i].puruzluluk.values[0],2)}")
-    with col4:
-        if df.shape[0]%4==0 or df.image_id.values[3]==4:
-            for i in range(4,df.shape[0]+1,4):
-                st.write(f"IMAGE_ID:{i}")
-                st.image(read_image_from_database(db_file=db_file,table_name=table_name,imageid=i))
-                st.write(f"PÜRÜZLÜLÜK:{round(df.loc[df.image_id==i].puruzluluk.values[0],2)}")     
-    conn.close()
-    st.dataframe(df)
+    ncount=df.shape[0]
+    df["opt"]=df.image_id.astype("string") +"-->"+ df.numune_adi
+    fotos=st.multiselect(label="NUMUNE SEÇİNİZ",options=df.opt.unique().tolist())
+    numune_pruz={}
+    if ncount>0 and len(fotos)>0:
+        cols=st.columns(len(fotos))
+        for idx,ad in enumerate(fotos):
+            numune_adi=ad.split("-->")[1]
+            puruzluluk=df.loc[df.numune_adi==numune_adi].puruzluluk.values[0]
+            cols[idx].write(numune_adi)
+            cols[idx].image(read_image_from_database(db_file=db_file,table_name=table_name,numune_adi=numune_adi))
+            #cols[i].image(read_image_from_database(db_file=db_file,table_name=table_name,imageid=i+1))
+            #cols[idx].checkbox("SEÇ",value=False,key=)
+            #cols[idx].write(f"PÜRÜZLÜLÜK:{round(df.loc[df.numune_adi==numune_adi].puruzluluk.values[0],2)}")
+            numune_pruz[numune_adi]=puruzluluk
+
+    if st.button("Seçilen Numuneleri Nem İçeriğine Göre Sırala"):
+        liste=[v[0] for v in sorted(numune_pruz.items(),key=lambda x:x[1])]
+        colms=st.columns(len(liste))
+        for i in range(len(liste)):
+            colms[i].write(liste[i])
+            colms[i].image(read_image_from_database(db_file=db_file,table_name=table_name,numune_adi=liste[i]))
 
 
+    st.write(rembg.__version__)
 
+               
 if __name__ == "__main__":
     main()

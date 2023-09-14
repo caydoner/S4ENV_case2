@@ -3,3 +3,4 @@ opencv-python-headless
 pandas==2.0.1
 streamlit==1.26.0
 streamlit-webrtc==0.47.0
+rembg==2.0.50
