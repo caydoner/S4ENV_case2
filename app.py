@@ -9,7 +9,7 @@ import rembg
 
 col1,col2,col3,col4,col5=st.columns([1,2,2,2,5])
 with col1:
-     st.image(".streamlit/tubitakmam.jpg",width=80,use_column_width=False)
+     st.image(".streamlit/tubitakmam.jpg",width=70,use_column_width=False)
 with col3:
      st.image(".streamlit/Smart4EnvLogo.png",width=180,use_column_width=False)
 with col5:
