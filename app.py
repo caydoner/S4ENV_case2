@@ -5,7 +5,12 @@ import pandas as pd
 import streamlit as st
 import sys
 import rembg
+from io import BytesIO
+import base64
 
+
+if 'secim' not in st.session_state:
+    st.session_state['secim'] = None
 
 col1,col2,col3,col4,col5=st.columns([1,2,2,2,5])
 with col1:
@@ -38,7 +43,6 @@ def create_dbconnection(db_file):
         sys.exit
 
 
-
 def create_table(db_file,table_name):
     """ create a table from the create_table_sql statement
     :param the_conn: Connection object
@@ -47,11 +51,12 @@ def create_table(db_file,table_name):
     c = the_conn.cursor()
     c.execute(f"""
         CREATE TABLE IF NOT EXISTS {table_name}(
-            image_id INTEGER PRIMARY KEY, 
+            image_id INTEGER PRIMARY KEY,
+            tarih TEXT,
+            numune_adi TEXT,
+            nem INTEGER, 
             puruzluluk FLOAT,
             parlaklik FLOAT,
-            numune_adi TEXT,
-            nem INTEGER,
             image BLOB)
             """)
     the_conn.commit()
@@ -61,10 +66,9 @@ def create_table(db_file,table_name):
 def add_data(db_file,the_table, kayit):
     the_conn = sqlite3.connect(database=db_file)
     cur = the_conn.cursor()
-    cur.execute(f"""INSERT INTO {the_table}(puruzluluk,parlaklik,numune_adi,image) VALUES (?,?,?,?) """, kayit)
+    cur.execute(f"""INSERT INTO {the_table}(tarih,numune_adi,nem,puruzluluk,parlaklik,image) VALUES (?,?,?,?,?,?) """, kayit)
     the_conn.commit()
     the_conn.close()
-
 
 def delete_table(db_file,the_table):
     the_conn = sqlite3.connect(database=db_file)
@@ -135,17 +139,7 @@ def add_column():
           columns[i]=st.empty()
 
 
-
-
-def main():
-    if  st.button(label='Verileri Temizle'):
-        delete_table(db_file=db_file,the_table=table_name)
-        st.success("Veritabanı temizlendi.")
-    create_table(db_file=db_file,table_name=table_name)
-    local_css('style.css')
-    #st.dataframe(sql_2_df(db_file=db_file,the_table=table_name))
-    #ncount=st.selectbox(label="NUMUNE SAYISI",options=[1,2,3,4,5])
-    picture=st.camera_input("NUMUNE FOTOĞRAFI")
+def calc_and_save_picture_data(picture):
     if picture is not None:
         bytes_data = picture.getvalue()
         bytes_data_rbg=rembg.remove(bytes_data)
@@ -156,14 +150,15 @@ def main():
             #st.write(f"Roughness Index: {roughness_index:.2f}")
             #st.write(f"Brightness Index: {brightness_index:.2f}")
             numune_adi=st.text_input(label='Numune Adı')
-            #tarih=st.date_input(label='Tarih',disabled=False,key='tarih',value=None,format="DD/MM/YYYY")
-            #nem=st.slider(label="Nem Değeri",min_value=0,max_value=1500,value=0,disabled=False,key='nem')
+            tarih=st.date_input(label='Tarih',disabled=False,key='tarih',value=None,format="DD/MM/YYYY")
+            nem=st.number_input(label="Nem Değeri",min_value=0,max_value=1500,disabled=False,key='nem')
             #st.write(all([picture,roughness_index,brightness_index,numune_adi]))
             kaydet=st.form_submit_button('Kaydet',disabled=False,)
             if all([picture,roughness_index,brightness_index,numune_adi]):
                 if kaydet:
-                    add_data(db_file=db_file,the_table=table_name,kayit=(roughness_index,brightness_index,numune_adi,sqlite3.Binary(bytes_data_rbg)))
+                    add_data(db_file=db_file,the_table=table_name,kayit=(tarih,numune_adi,nem,roughness_index,brightness_index,sqlite3.Binary(bytes_data_rbg)))
                     st.success("Numune Kaydedildi")
+
                     del picture
                     del roughness_index
                     del brightness_index
@@ -173,11 +168,81 @@ def main():
                 st.warning("Lütfen Numune Adını Giriniz!" )
 
 
+def download_excel(df, filename="dataframe.xlsx"):
+    """
+    Function to download Pandas DataFrame as an Excel file using st.download_button.
+
+    Parameters:
+        df (pandas.DataFrame): DataFrame to be downloaded.
+        filename (str): Name of the file to be downloaded. Default is 'dataframe.xlsx'.
+    """
+    # Convert DataFrame to Excel in memory
+    output = BytesIO()
+
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        # Write each dataframe to a different worksheet.
+        df.to_excel(writer, sheet_name='Sheet1', index=False)
+        download2 = st.download_button(
+            label="Download data as Excel",
+            data=output,
+            file_name='large_df.xlsx',
+            mime='application/vnd.ms-excel'
+        )
+
+
+
+
+
+def main():
+    if st.button(label='Verileri Temizle'):
+        delete_table(db_file=db_file,the_table=table_name)
+        st.success("Veritabanı temizlendi.")
+    create_table(db_file=db_file,table_name=table_name)
+    local_css('style.css')
+    #st.dataframe(sql_2_df(db_file=db_file,the_table=table_name))
+    #ncount=st.selectbox(label="NUMUNE SAYISI",options=[1,2,3,4,5])
+
+    st.radio(label="Numune Fotoğrafı Aktarma",
+                     options=["Yerel Bilgisayarda Bulunan Fotoğrafı Aktar", "Kameradan Fotoğraf Çekerek Aktar"],
+                     index=None,key='secim')
+
+    if st.session_state.secim=="Yerel Bilgisayarda Bulunan Fotoğrafı Aktar":
+        picture = st.file_uploader("Fotoğraf Seç...", type=["jpg", "jpeg", "png"],key="file")
+    elif st.session_state.secim=="Kameradan Fotoğraf Çekerek Aktar":
+        picture=st.camera_input("NUMUNE FOTOĞRAFI",key="camfile")
     else:
-        st.empty()
+        picture=None
+
+    calc_and_save_picture_data(picture)
+
+
 
     #NEM DURUMUNA GÖRE SIRALA
     df=sql_2_df(db=db_file,table_name=table_name)
+    st.dataframe(df,hide_index=True,column_config={
+        "tarih":st.column_config.Column("TARIH"),
+        "numune_adi":"NUMUNE ADI",
+        "puruzluluk":"PÜRÜZLÜLÜK İNDEKSİ",
+        "parlaklik":"PARLAKLIK İNDEKSİ",
+        "nem":"NEM DEĞERİ",
+        "image":None,
+    })
+
+    #EXCEL FORMATINA DONUŞTUR VE INDIR
+    output = BytesIO()
+
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        # Write each dataframe to a different worksheet.
+        df.iloc[:,0:-1].to_excel(writer, sheet_name='Sheet1', index=False)
+        writer.close()
+        download2 = st.download_button(
+            label="Excel olarak indir",
+            data=output.getvalue(),
+            file_name='camur_numune.xlsx',
+            mime='application/vnd.ms-excel'
+        )
+
+
     ncount=df.shape[0]
     df["opt"]=df.image_id.astype("string") +"-->"+ df.numune_adi
     fotos=st.multiselect(label="NUMUNE SEÇİNİZ",options=df.opt.unique().tolist())
@@ -200,6 +265,8 @@ def main():
         for i in range(len(liste)):
             colms[i].write(liste[i])
             colms[i].image(read_image_from_database(db_file=db_file,table_name=table_name,numune_adi=liste[i]))
+
+
 
                
 if __name__ == "__main__":
