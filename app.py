@@ -6,7 +6,7 @@ import streamlit as st
 import sys
 import rembg
 from io import BytesIO
-import base64
+
 
 
 if 'secim' not in st.session_state:
