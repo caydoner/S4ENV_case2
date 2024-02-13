@@ -20,6 +20,11 @@ with col3:
 with col5:
      st.image(".streamlit/smart4envbacky.png",width=300,use_column_width=True)
 
+st.radio(label="Numune Fotoğrafı Aktarma",
+         options=["Yerel Bilgisayarda Bulunan Fotoğrafı Aktar", "Kameradan Fotoğraf Çekerek Aktar"],
+         index=None,key='secim')
+
+
 db_file="database.db"
 table_name='olcumler'
 
@@ -168,29 +173,6 @@ def calc_and_save_picture_data(picture):
                 st.warning("Lütfen Numune Adını Giriniz!" )
 
 
-def download_excel(df, filename="dataframe.xlsx"):
-    """
-    Function to download Pandas DataFrame as an Excel file using st.download_button.
-
-    Parameters:
-        df (pandas.DataFrame): DataFrame to be downloaded.
-        filename (str): Name of the file to be downloaded. Default is 'dataframe.xlsx'.
-    """
-    # Convert DataFrame to Excel in memory
-    output = BytesIO()
-
-    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-        # Write each dataframe to a different worksheet.
-        df.to_excel(writer, sheet_name='Sheet1', index=False)
-        download2 = st.download_button(
-            label="Download data as Excel",
-            data=output,
-            file_name='large_df.xlsx',
-            mime='application/vnd.ms-excel'
-        )
-
-
-
 
 
 def main():
@@ -202,9 +184,6 @@ def main():
     #st.dataframe(sql_2_df(db_file=db_file,the_table=table_name))
     #ncount=st.selectbox(label="NUMUNE SAYISI",options=[1,2,3,4,5])
 
-    st.radio(label="Numune Fotoğrafı Aktarma",
-                     options=["Yerel Bilgisayarda Bulunan Fotoğrafı Aktar", "Kameradan Fotoğraf Çekerek Aktar"],
-                     index=None,key='secim')
 
     if st.session_state.secim=="Yerel Bilgisayarda Bulunan Fotoğrafı Aktar":
         picture = st.file_uploader("Fotoğraf Seç...", type=["jpg", "jpeg", "png"],key="file")
