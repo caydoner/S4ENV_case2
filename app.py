@@ -20,8 +20,8 @@ with col3:
 with col5:
      st.image(".streamlit/smart4envbacky.png",width=300,use_column_width=True)
 
-secim=st.radio(label="Numune Fotoğrafı Aktarma",
-         options=["Yerel Bilgisayarda Bulunan Fotoğrafı Aktar", "Kameradan Fotoğraf Çekerek Aktar"],
+secim=st.radio(label="Numune Fotograf Aktarma",
+         options=["Yerel Bilgisayardan Aktar", "Kameradan Aktar"],
          index=None,key='secim')
 
 
@@ -185,9 +185,9 @@ def main():
     #ncount=st.selectbox(label="NUMUNE SAYISI",options=[1,2,3,4,5])
 
 
-    if st.session_state.secim=="Yerel Bilgisayarda Bulunan Fotoğrafı Aktar":
+    if secim=="Yerel Bilgisayardan Aktar":
         picture = st.file_uploader("Fotoğraf Seç...", type=["jpg", "jpeg", "png"],key="file")
-    elif st.session_state.secim=="Kameradan Fotoğraf Çekerek Aktar":
+    elif secim=="Kameradan Aktar":
         picture=st.camera_input("NUMUNE FOTOĞRAFI",key="camfile")
     else:
         picture=None
