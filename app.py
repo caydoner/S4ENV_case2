@@ -20,7 +20,7 @@ with col3:
 with col5:
      st.image(".streamlit/smart4envbacky.png",width=300,use_column_width=True)
 
-st.radio(label="Numune Fotoğrafı Aktarma",
+secim=st.radio(label="Numune Fotoğrafı Aktarma",
          options=["Yerel Bilgisayarda Bulunan Fotoğrafı Aktar", "Kameradan Fotoğraf Çekerek Aktar"],
          index=None,key='secim')
 
