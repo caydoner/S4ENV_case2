@@ -20,9 +20,8 @@ with col3:
 with col5:
      st.image(".streamlit/smart4envbacky.png",width=300,use_column_width=True)
 
-secim=st.radio(label="Numune Fotograf Aktarma",
-         options=["Yerel Bilgisayardan Aktar", "Kameradan Aktar"],
-         key='secim')
+secenek=['Yerel Bilgisayardan Aktar','Kameradan Aktar']
+secim=st.radio('Numune Fotograf Aktarma',secenek)
 
 
 db_file="database.db"
