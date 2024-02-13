@@ -111,9 +111,57 @@
     border-color: rgb(255, 75, 75);
     color: rgb(255, 75, 75);
 }
-.css-ocqkz7.e1f1d6gn3 {
+.st-emotion-cache-ue6h4q.e1y5xkzn3{
     display: flex;
     align-items:center;
+    font-family: "Source Sans Pro", sans-serif;
+    font-weight: 500;
+    line-height: 1.6;
+    font-size: 250 px;
+    color: rgb(255, 0, 0);
 
+
+}
+
+
+.st-emotion-cache-7ym5gk.ef3psqc12{
+    font-family: "Source Sans Pro", sans-serif;
+    font-weight: 900;
+    line-height: 1.6;
+    text-size-adjust: 100%;
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+    -webkit-font-smoothing: auto;
+    color-scheme: light;
+    box-sizing: border-box;
+    font-size: 255 px;
+    color: rgb(0, 0, 255);
+    display: flex;
+    visibility: visible;
+    margin-bottom: 0.25rem;
+    height: auto;
+    min-height: 2.5rem;
+    vertical-align: middle;
+    flex-direction: row;
+    -webkit-box-align: center;
+    align-items: center;
+    }
+
+.st-emotion-cache-17ypgft.e1f1d6gn4{
+
+    align-items: center;
+    font-family: "Source Sans Pro", sans-serif;
+    font-weight: 100;
+    line-height: 1;
+    font-size: 50 px;
+    color: rgb(255, 0, 0);
+
+}
+.st-emotion-cache-eqffof.e1nzilvr5{
+    align-items: center;
+    font-family: "Source Sans Pro", sans-serif;
+    font-weight: 100;
+    line-height: 1;
+    font-size: 50 px;
+    color: rgb(255, 0, 0);
 
 }

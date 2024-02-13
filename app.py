@@ -21,7 +21,7 @@ with col5:
      st.image(".streamlit/smart4envbacky.png",width=300,use_column_width=True)
 
 secenek=['Yerel Bilgisayardan Aktar','Kameradan Aktar']
-secim=st.radio('Numune Fotograf Aktarma',secenek)
+secim=st.radio('ÇAMUR NUMUNE FOTOĞRAFI AKTARMA ',secenek)
 
 
 db_file="database.db"
@@ -175,7 +175,7 @@ def calc_and_save_picture_data(picture):
 
 
 def main():
-    if st.button(label='Verileri Temizle'):
+    if st.button(label='Verileri Temizle',disabled=False):
         delete_table(db_file=db_file,the_table=table_name)
         st.success("Veritabanı temizlendi.")
     create_table(db_file=db_file,table_name=table_name)
@@ -185,7 +185,7 @@ def main():
 
 
     if secim=="Yerel Bilgisayardan Aktar":
-        picture = st.file_uploader("Fotoğraf Seç...", type=["jpg", "jpeg", "png"],key="file")
+        picture = st.file_uploader("NUMUNE FOTOĞRAFI", type=["jpg", "jpeg", "png"],key="file")
     elif secim=="Kameradan Aktar":
         picture=st.camera_input("NUMUNE FOTOĞRAFI",key="camfile")
     else:
@@ -194,25 +194,24 @@ def main():
     calc_and_save_picture_data(picture)
 
 
-
     #NEM DURUMUNA GÖRE SIRALA
     df=sql_2_df(db=db_file,table_name=table_name)
     st.dataframe(df,hide_index=True,column_config={
-        "tarih":st.column_config.Column("TARIH"),
         "numune_adi":"NUMUNE ADI",
+        "tarih":st.column_config.Column("TARIH"),
         "puruzluluk":"PÜRÜZLÜLÜK İNDEKSİ",
         "parlaklik":"PARLAKLIK İNDEKSİ",
         "nem":"NEM DEĞERİ",
+        "image_id":"NO",
         "image":None,
-    })
+    },use_container_width=True,column_order=["image_id","numune_adi","tarih","nem","puruzluluk","parlaklik"])
 
     #EXCEL FORMATINA DONUŞTUR VE INDIR
     output = BytesIO()
-
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
         # Write each dataframe to a different worksheet.
         df.iloc[:,0:-1].to_excel(writer, sheet_name='Sheet1', index=False)
-        writer.close()
+        writer._save()
         download2 = st.download_button(
             label="Excel olarak indir",
             data=output.getvalue(),
