@@ -156,9 +156,9 @@ def calc_and_save_picture_data(picture):
         with st.form("Numune Fotoğraflari",clear_on_submit=True):
             #st.write(f"Roughness Index: {roughness_index:.2f}")
             #st.write(f"Brightness Index: {brightness_index:.2f}")
-            numune_adi=st.text_input(label='Numune Adı')
+            numune_adi=st.text_input(label='Numune Adı',placeholder="Numune Adını Giriniz...")
             tarih=st.date_input(label='Tarih',disabled=False,key='tarih',value=None,format="DD/MM/YYYY")
-            nem=st.number_input(label="Nem Değeri",min_value=0,max_value=1500,disabled=False,key='nem')
+            nem=st.number_input('Nem Değeri',value=None,placeholder="Nem Değerini Giriniz...")
             #st.write(all([picture,roughness_index,brightness_index,numune_adi]))
             kaydet=st.form_submit_button('Kaydet',disabled=False,)
             if all([picture,roughness_index,brightness_index,numune_adi]):
