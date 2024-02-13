@@ -22,7 +22,7 @@ with col5:
 
 secim=st.radio(label="Numune Fotograf Aktarma",
          options=["Yerel Bilgisayardan Aktar", "Kameradan Aktar"],
-         index=None,key='secim')
+         key='secim')
 
 
 db_file="database.db"
