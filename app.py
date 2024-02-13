@@ -175,9 +175,9 @@ def calc_and_save_picture_data(picture):
 
 
 def main():
-    if st.button(label='Verileri Temizle',disabled=False):
-        delete_table(db_file=db_file,the_table=table_name)
-        st.success("Veritabanı temizlendi.")
+    # if st.button(label='Verileri Temizle',disabled=False):
+    #     delete_table(db_file=db_file,the_table=table_name)
+    #     st.success("Veritabanı temizlendi.")
     create_table(db_file=db_file,table_name=table_name)
     local_css('style.css')
     #st.dataframe(sql_2_df(db_file=db_file,the_table=table_name))
@@ -211,7 +211,7 @@ def main():
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
         # Write each dataframe to a different worksheet.
         df.iloc[:,0:-1].to_excel(writer, sheet_name='Sheet1', index=False)
-        writer._save()
+        #writer._save()
         download2 = st.download_button(
             label="Excel olarak indir",
             data=output.getvalue(),
