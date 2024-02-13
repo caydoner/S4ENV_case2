@@ -6,11 +6,14 @@ import streamlit as st
 import sys
 import rembg
 from io import BytesIO
+import xlsxwriter
 
 
 
 if 'secim' not in st.session_state:
     st.session_state['secim'] = None
+
+
 
 col1,col2,col3,col4,col5=st.columns([1,2,2,2,5])
 with col1:
@@ -211,13 +214,13 @@ def main():
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
         # Write each dataframe to a different worksheet.
         df.iloc[:,0:-1].to_excel(writer, sheet_name='Sheet1', index=False)
-        #writer._save()
-        download2 = st.download_button(
-            label="Excel olarak indir",
-            data=output.getvalue(),
-            file_name='camur_numune.xlsx',
-            mime='application/vnd.ms-excel'
-        )
+
+    st.download_button(
+        label="Excel olarak indir",
+        data=output.getvalue(),
+        file_name='camur_numune.xlsx',
+        mime='application/vnd.ms-excel'
+    )
 
 
     ncount=df.shape[0]
@@ -248,3 +251,4 @@ def main():
                
 if __name__ == "__main__":
     main()
+
