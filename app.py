@@ -6,22 +6,24 @@ import streamlit as st
 import sys
 import rembg
 from io import BytesIO
-import xlsxwriter
+from st_aggrid import AgGrid,GridOptionsBuilder,GridUpdateMode,JsCode,AgGridReturn,DataReturnMode,AgGridTheme
 
-
+st.set_page_config(layout="centered")
 
 if 'secim' not in st.session_state:
     st.session_state['secim'] = None
 
 
 
-col1,col2,col3,col4,col5=st.columns([1,2,2,2,5])
+
+
+col1,col3,col5=st.columns(3)
 with col1:
-     st.image(".streamlit/tubitakmam.jpg",width=70,use_column_width=False)
+     st.image(".streamlit/tubitakmam.jpg",width=50,use_column_width=False)
 with col3:
-     st.image(".streamlit/Smart4EnvLogo.png",width=180,use_column_width=False)
+     st.image(".streamlit/Smart4EnvLogo.png",width=150,use_column_width=False)
 with col5:
-     st.image(".streamlit/smart4envbacky.png",width=300,use_column_width=True)
+     st.image(".streamlit/smart4envbacky.png",width=150,use_column_width=True)
 
 secenek=['Yerel Bilgisayardan Aktar','Kameradan Aktar']
 secim=st.radio('ÇAMUR NUMUNE FOTOĞRAFI AKTARMA ',secenek)
@@ -77,6 +79,13 @@ def add_data(db_file,the_table, kayit):
     the_conn.commit()
     the_conn.close()
 
+def kayit_sil(db_file,the_table, kayit):
+    the_conn = sqlite3.connect(database=db_file)
+    cur = the_conn.cursor()
+    cur.execute(f"""DELETE FROM {the_table} WHERE image_id=?""", kayit)
+    the_conn.commit()
+    the_conn.close()
+
 def delete_table(db_file,the_table):
     the_conn = sqlite3.connect(database=db_file)
     cur = the_conn.cursor()
@@ -128,9 +137,9 @@ def calculate_brightness(cv2img):
 
 
 
-def sql_2_df(db,table_name):
+def sql_2_df(db_file,table_name):
     # SQLite veritabanına bağlan
-    con = sqlite3.connect(db)
+    con = create_dbconnection(db_file)
     # Pandas ile SQL sorgusunu kullanarak veriyi oku
     query = f"SELECT * FROM {table_name}"
     df = pd.read_sql(query, con)
@@ -158,7 +167,7 @@ def calc_and_save_picture_data(picture):
             #st.write(f"Brightness Index: {brightness_index:.2f}")
             numune_adi=st.text_input(label='Numune Adı',placeholder="Numune Adını Giriniz...")
             tarih=st.date_input(label='Tarih',disabled=False,key='tarih',value=None,format="DD/MM/YYYY")
-            nem=st.number_input('Nem Değeri',value=None,placeholder="Nem Değerini Giriniz...")
+            nem=st.number_input('Nem Değeri',min_value=0.0,max_value=100.0,placeholder="Nem Değerini Giriniz...")
             #st.write(all([picture,roughness_index,brightness_index,numune_adi]))
             kaydet=st.form_submit_button('Kaydet',disabled=False,)
             if all([picture,roughness_index,brightness_index,numune_adi]):
@@ -173,7 +182,6 @@ def calc_and_save_picture_data(picture):
                     del bytes_data_rbg
             else:
                 st.warning("Lütfen Numune Adını Giriniz!" )
-
 
 
 
@@ -195,34 +203,58 @@ def main():
         picture=None
 
     calc_and_save_picture_data(picture)
+    df = sql_2_df(db_file, table_name)
 
+    builder = GridOptionsBuilder.from_dataframe(df.iloc[:, :-1])
+    builder.configure_selection(selection_mode='single',use_checkbox=True)
+    builder.configure_pagination()
+    go = builder.build()
+    ag = AgGrid(
+        df.iloc[:, :-1],
+        gridOptions=go,
+        fit_columns_on_grid_load=True,
+        update_mode=GridUpdateMode.MODEL_CHANGED,
+        key=None,
+        theme=AgGridTheme.BALHAM)
+    if ag.selected_rows:
+        if st.button('Seçili Kaydı Sil'):
+            with st.spinner("Kayıt Siliniyor..."):
+                kayit_sil(db_file, table_name, [ag['selected_rows'][0]['image_id']])
+                st.success("Kayıt Silindi.")
+                st.rerun()
+
+
+
+
+
+
+    #st.markdown(f"""AgGrid({df.iloc[:, :-1]}, gridOptions={go},fit_columns_on_grid_load=True, reload_data={reload_data}, height={height})""")
+    #grid_table=AgGrid(df.iloc[:, :-1], gridOptions=go,fit_columns_on_grid_load=True, key=None,update_mode = GridUpdateMode.MODEL_CHANGED, reload_data=True)
+    # selections=grid_table['selected_rows']
+    # st.write(selections)
+    # sil=st.button("Seçili Kaydı Sil")
+    # if len(selections)==1 and sil:
+    #     kayit_sil(db_file,table_name,[selections[0]['image_id']])
+    #     st.success("Kayıt Silindi.")
+    #     grid_table.data=df.iloc[:, :-1]
+    # else:
+    #     st.warning("Lütfen Silmek İstediğiniz Kaydı Seçiniz...")
+
+
+    # #EXCEL FORMATINA DONUŞTUR VE INDIR
+    # output = BytesIO()
+    # with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+    #     # Write each dataframe to a different worksheet.
+    #     df.iloc[:,0:-1].to_excel(writer, sheet_name='Sheet1', index=False)
+    #
+    # st.download_button(
+    #     label="Excel olarak indir",
+    #     data=output.getvalue(),
+    #     file_name='camur_numune.xlsx',
+    #     mime='application/vnd.ms-excel'
+    # )
 
     #NEM DURUMUNA GÖRE SIRALA
-    df=sql_2_df(db=db_file,table_name=table_name)
-    st.dataframe(df,hide_index=True,column_config={
-        "numune_adi":"NUMUNE ADI",
-        "tarih":st.column_config.Column("TARIH"),
-        "puruzluluk":"PÜRÜZLÜLÜK İNDEKSİ",
-        "parlaklik":"PARLAKLIK İNDEKSİ",
-        "nem":"NEM DEĞERİ",
-        "image_id":"NO",
-        "image":None,
-    },use_container_width=True,column_order=["image_id","numune_adi","tarih","nem","puruzluluk","parlaklik"])
-
-    #EXCEL FORMATINA DONUŞTUR VE INDIR
-    output = BytesIO()
-    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-        # Write each dataframe to a different worksheet.
-        df.iloc[:,0:-1].to_excel(writer, sheet_name='Sheet1', index=False)
-
-    st.download_button(
-        label="Excel olarak indir",
-        data=output.getvalue(),
-        file_name='camur_numune.xlsx',
-        mime='application/vnd.ms-excel'
-    )
-
-
     ncount=df.shape[0]
     df["opt"]=df.image_id.astype("string") +"-->"+ df.numune_adi
     fotos=st.multiselect(label="NUMUNE SEÇİNİZ",options=df.opt.unique().tolist())
